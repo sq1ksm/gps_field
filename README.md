@@ -1,4 +1,3 @@
-# gps_field
 GPS in the field GPS dla krótkofalowca w polu pracującego, informuje go o godzinie UTC, którą wpisuje do dziennika, lokator QRA w razie pytania od korespondentów i do wpisania na kartę QSL
 # GPS_Display
 
