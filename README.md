@@ -22,7 +22,7 @@ GPS_Display to program napisany dla platformy Arduino, który bazuje na kodzie t
 5. Wgraj kod do Arduino Nano.
 
 ## Modyfikacje
-Plik pobrany z https://github.com/iseries1/GPSDisplay i dalsze zmiany:
+Plik pobrany z https://github.com/iseries1/GPSDisplay i dodano dalsze zmiany:
 - 26-01-2025   V.2.3   Dodano kilka funkcji, optymalizacja kodu - SQ1KSM
 
 ## Funkcje programu
@@ -30,4 +30,3 @@ Plik pobrany z https://github.com/iseries1/GPSDisplay i dalsze zmiany:
 - Wyświetlanie współrzędnych GPS, jeśli brak informacji wyświetla się odpowiedni komunikat.
 - Wyświetlanie liczby satelitów.
 - Wyświetlanie lokalizatora QRA, jeśli brak informacji z GPS to nic się nie wyświetla.
-- Automatyczne resetowanie czasu przy zmianie godziny.
