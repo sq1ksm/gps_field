@@ -18,7 +18,7 @@
 #include <U8glib.h>
 
 // Ustaw na false, aby wyświetlać czas w formacie 12-godzinnym, lub true, aby używać formatu 24-godzinnego:
-#define CZ_24_H true
+#define HU_24_H true
 
 // Zmień tę wartość, aby przesunąć godziny od UTC (czasu uniwersalnego) do lokalnego czasu.
 const int HOUR_OFFSET = 0;
@@ -117,7 +117,7 @@ void displaytime() {
   }
 
   // Konwersja z formatu 24-godzinnego na 12-godzinny, jeśli wymagane.
-  if (!CZ_24_H) {
+  if (!HU_24_H) {
     // Obsługa godzin powyżej 12 przez odjęcie 12 godzin.
     if (GPS.hour > 12) {
       hours -= 12;
