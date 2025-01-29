@@ -3,6 +3,7 @@
 // Wykorzystano również bibliotekę graficzną autorstwa Olivera Krausa.
 // Zmodyfikowano do pracy z wyświetlaczem OLED i dodano informacje o lokalizatorze QRA.
 // Program wyświetla CZAS LOKALNY i w formacie 12/24 godzinnym.
+// Części kodów
 //
 // Sprzęt:
 // - Arduino Nano z wyświetlaczem OLED 64 x 128 (I2C)
@@ -56,9 +57,10 @@ void setup() {
 
 uint32_t timer = millis();
 
-//************************** P Ę T L A   **************************************************
-void loop()  // wykonywane w nieskończoność
-{
+// P Ę T L A
+// wykonywane w nieskończoność
+
+void loop() {
   // odczytaj dane z GPS w głównej pętli
   char c = GPS.read();
   // jeśli chcesz debugować, to dobry moment, aby to zrobić!
@@ -90,14 +92,13 @@ void loop()  // wykonywane w nieskończoność
     } while (u8g.nextPage());
   }
 }
-/******************************************************************
- *   W Y Ś W I E T L A N I E
- *   
- *   Wyświetla dane o czasie, dacie i lokalizacji
- *   Czas jest skorygowany o strefę czasową i format 12/24 godzinny
- ******************************************************************/
+
+//  W Y Ś W I E T L A N I E
+//  Wyświetla dane o czasie, dacie i lokalizacji
+//  Czas jest skorygowany o strefę czasową i format 12/24 godzinny
+
 void printTimeElement(uint8_t element) {
-  if (element < 10) u8g.print("0");
+  if (element < 10) u8g.print("0");  //dodanie 0
   u8g.print(element, DEC);
 }
 
@@ -127,7 +128,7 @@ void displaytime() {
       hours += 12;
     }
   }
-
+  // Wyświetlanie czasu 
   printTimeElement(hours);
   u8g.print(":");
   printTimeElement(GPS.minute);
@@ -153,7 +154,7 @@ void displaylocation() {
   u8g.setPrintPos(0, 10);
 
   if (GPS.satellites == 0) {
-    // Jeśli brak satelitów, wyświetl " -- -- "
+    // Jeśli brak satelitów, wyświetl " NAPIS "
     u8g.print("Czekam na GPS...");
   } else {
     // Wyświetlanie rzeczywistych współrzędnych
