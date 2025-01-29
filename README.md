@@ -1,5 +1,5 @@
 GPS in the field GPS dla krótkofalowca w polu pracującego, informuje go o godzinie UTC, którą wpisuje do dziennika, lokator QRA w razie pytania od korespondentów i do wpisania na kartę QSL
-# GPS_Display
+# GPS_Field
 
 ## Opis projektu
 GPS_Display to program napisany dla platformy Arduino, który bazuje na kodzie testowym dla modułów GPS Adafruit wykorzystujących sterownik MTK3329/MTK3339. Projekt został zoptymalizowany do pracy z wyświetlaczem OLED i dodano informacje o lokalizatorze QRA. Program wyświetla czas lokalny w formacie 12/24 godzinnym oraz współrzędne GPS.
