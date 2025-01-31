@@ -9,7 +9,7 @@
 // Połączenia między Nano, OLED i modułem GPS:
 // - OLED I2C: A4-SDA, A5-SCL, 5Volt-Vcc
 // - GPS: 5Volt-Vcc, RX0-TX.  !!!>>  Odłączyć podczas programowania <<!!!
-// - 01-02-2025    Dodano kilka funkcji, optymalizacja kodu - SQ1KSM
+// - 01-02-2025 - Dodano kilka funkcji, optymalizacja kodu - SQ1KSM
 
 #include <TinyGPS++.h>  // Biblioteka TinyGPS++
 #include <U8glib.h>     // Biblioteka do obsługi wyświetlacza OLED
