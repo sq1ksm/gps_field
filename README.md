@@ -22,8 +22,9 @@ GPS_Display to program napisany dla platformy Arduino, który bazuje na kodzie t
 
 ## Modyfikacje
 Plik pobrany z kilku miejsc w internecie (zlepek pomysłów, jeśli rościsz prawa do części kodu napisz):
-- 26.01.2025   V.2.3   Dodano kilka funkcji, optymalizacja kodu.
+- 26.01.2025 V.2.3 - Dodano kilka funkcji, optymalizacja kodu.
 - 29.01.2025 Dalsza optymalizacja i opis działania w kodzie.
+- 01.02.2025 V.2.4 - Zmiana biblioteki na TINY++ i drobne poprawki
 
 ## Funkcje programu
 - Wyświetlanie czasu lokalnego w formacie 12/24 godzinnym.
