@@ -1,9 +1,7 @@
-// GPS_Display
 // Ten program bazuje na kodzie testowym dla modułów GPS Adafruit wykorzystujących sterownik MTK3329/MTK3339.
 // Wykorzystano również bibliotekę graficzną autorstwa Olivera Krausa.
 // Zmodyfikowano do pracy z wyświetlaczem OLED i dodano informacje o lokalizatorze QRA.
 // Program wyświetla CZAS LOKALNY i w formacie 12/24 godzinnym.
-// Części kodów
 //
 // Sprzęt:
 // - Arduino Nano z wyświetlaczem OLED 64 x 128 (I2C)
@@ -12,224 +10,186 @@
 // Połączenia między Nano, OLED i modułem GPS:
 // - OLED I2C: A4-SDA, A5-SCL, 5Volt-Vcc
 // - GPS: 5Volt-Vcc, RX0-TX.  !!!>>  Odłączyć podczas programowania <<!!!
-// - 26-01-2025    Dodano kilka funkcji, optymalizacja kodu - SQ1KSM
+// - 31-01-2025    Dodano kilka funkcji, optymalizacja kodu - SQ1KSM
 
-#include <Adafruit_GPS.h>
-#include <SoftwareSerial.h>
-#include <U8glib.h>
+// Inicjalizacja bibliotek
+#include <Adafruit_GPS.h>       // Biblioteka do obsługi modułu GPS
+#include <SoftwareSerial.h>     // Biblioteka do obsługi komunikacji szeregowej
+#include <U8glib.h>             // Biblioteka do obsługi wyświetlacza OLED
 
-// Ustaw na false, aby wyświetlać czas w formacie 12-godzinnym, lub true, aby używać formatu 24-godzinnego:
-#define HU_24_H true
+// Definicja formatu czasu (24-godzinny lub 12-godzinny)
+#define HU_24_H false           // Ustawienie formatu czasu (false = 12-godzinny, true = 24-godzinny)
+const int HOUR_OFFSET = 0;      // Przesunięcie strefy czasowej (w godzinach)
 
-// Zmień tę wartość, aby przesunąć godziny od UTC (czasu uniwersalnego) do lokalnego czasu.
-const int HOUR_OFFSET = 0;
-//const int OLED_RESET = 4;
+// Zmienne do przechowywania kierunków geograficznych
+char latns, lonew;
 
-char latns, lonew;  // zapisz wskaźniki lokalizacji, aby zapobiec problemom z synchronizacją
+// Inicjalizacja obiektów
+Adafruit_GPS GPS(&Serial);      // Obiekt do obsługi modułu GPS
+U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_NO_ACK);  // Obiekt do obsługi wyświetlacza OLED
 
-// Inicjalizacja sprzętu
-Adafruit_GPS GPS(&Serial);                      // Sprzętowy serial wykorzystujący Rx0
-U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_NO_ACK);  // Wyświetlacz, który nie wysyła ACK
-
-// Ustaw GPSECHO na 'false', aby wyłączyć przesyłanie danych GPS do konsoli szeregowej
-// Ustaw na 'true', jeśli chcesz debugować i słuchać surowych informacji GPS.
+// Definicja debugowania GPS (wyświetlanie danych NMEA w konsoli)
 #define GPSECHO false
-void setup() {
-  // Połącz z prędkością 9600, aby odczytać dane GPS wystarczająco szybko i przesłać je bez gubienia znaków
-  // a także wypisz dane
-  Serial.begin(9600);
-  // 9600 NMEA to domyślna prędkość transmisji dla modułów GPS Adafruit MTK - niektóre używają 4800
-  GPS.begin(9600);
-  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);  // zmniejsza do niezbędnego minimum wysyłane dane - nowa funkcja! (SQ1KSM)
 
-  // Ekran powitalny
+// Stałe do obliczeń lokalizatora QRA
+const float LONGITUDE_OFFSET = 180000000;  // Przesunięcie długości geograficznej
+const float LATITUDE_OFFSET = 90000000;    // Przesunięcie szerokości geograficznej
+const float GRID_SIZE_LONG = 20000000;     // Rozmiar siatki dla długości geograficznej
+const float GRID_SIZE_LAT = 10000000;      // Rozmiar siatki dla szerokości geograficznej
+const float SUBGRID_SIZE_LONG = 2000000;   // Rozmiar podziałki dla długości geograficznej
+const float SUBGRID_SIZE_LAT = 1000000;    // Rozmiar podziałki dla szerokości geograficznej
+
+// Funkcja setup - inicjalizacja urządzenia
+void setup() {
+  Serial.begin(9600);           // Inicjalizacja komunikacji szeregowej
+  GPS.begin(9600);              // Inicjalizacja modułu GPS
+  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);  // Ustawienie formatu danych NMEA
+
+  // Wyświetlenie ekranu startowego na OLED
   u8g.firstPage();
   do {
-    u8g.setFont(u8g_font_helvR08);
-    u8g.drawStr(35, 10, "GPS - FIELD");
-    u8g.setFont(u8g_font_gdr20);    // Użyj dużej czcionki dla podanego znaku
-    u8g.drawStr(10, 40, "SQ1KSM");  // Wpisz swój znak
-    u8g.setFont(u8g_font_helvR08);  // Powrót do domyślnej czcionki
-    u8g.drawStr(55, 60, "Slawek");  // Wpisz swoje imie
+    u8g.setFont(u8g_font_helvR08);  // Ustawienie czcionki
+    u8g.drawStr(35, 10, "GPS - FIELD");  // Nazwa urządzenia
+    u8g.setFont(u8g_font_gdr20);    // Ustawienie większej czcionki
+    u8g.drawStr(10, 40, "SQ1KSM");  // Wyświetlenie znkau
+    u8g.setFont(u8g_font_helvR08);  // Ustawienie czcionki
+    u8g.drawStr(55, 60, "Slawek");  // Wyświetlenie imienia...
   } while (u8g.nextPage());
-  delay(2000);  // Czekaj 2 sekundy
+  delay(2000);  // Opóźnienie wyświetlania ekranu startowego
 }
 
+// Zmienna do pomiaru czasu
 uint32_t timer = millis();
 
-// P Ę T L A
-// wykonywane w nieskończoność
-
+// Główna pętla programu
 void loop() {
-  // odczytaj dane z GPS w głównej pętli
-  char c = GPS.read();
-  // jeśli chcesz debugować, to dobry moment, aby to zrobić!
-  if (GPSECHO)
-    if (c) Serial.print(c);
+  char c = GPS.read();  // Odczyt danych z modułu GPS
+  if (GPSECHO && c) Serial.print(c);  // Debugowanie: wyświetlanie danych NMEA w konsoli
 
+  // Sprawdzenie, czy otrzymano nową ramkę NMEA
   if (GPS.newNMEAreceived()) {
-    if (!GPS.parse(GPS.lastNMEA())) return;
+    if (!GPS.parse(GPS.lastNMEA())) return;  // Parsowanie ramki NMEA
   }
 
-  // jeśli millis() lub timer się przewijają, po prostu je zresetuj
+  // Aktualizacja timera
   if (timer > millis()) timer = millis();
 
-  // mniej więcej co 1 sekundę wyświetl bieżące statystyki
+  // Aktualizacja wyświetlacza co 1 sekundę
   if (millis() - timer > 1000) {
-    timer = millis();  // zresetuj timer
+    timer = millis();
 
-    if (GPSECHO)
-      Serial.println(GPS.seconds, DEC);
+    // Debugowanie: wyświetlanie sekund w konsoli
+    if (GPSECHO) Serial.println(GPS.seconds, DEC);
 
-    // Pętla rysowania obrazu
+    // Wyświetlenie informacji na OLED
     u8g.firstPage();
     do {
-      displaytime();
-      displaydate();
-      displaylocation();
-      displaysats();
-      displayQRA();
+      displaytime();     // Wyświetlenie czasu
+      displaydate();     // Wyświetlenie daty
+      displaylocation(); // Wyświetlenie lokalizacji
+      displaysats();     // Wyświetlenie liczby satelit
+      displayQRA();      // Wyświetlenie lokalizatora QRA
     } while (u8g.nextPage());
   }
 }
 
-//  W Y Ś W I E T L A N I E
-//  Wyświetla dane o czasie, dacie i lokalizacji
-//  Czas jest skorygowany o strefę czasową i format 12/24 godzinny
-
+// Funkcja pomocnicza do wyświetlania elementów czasu (z zerami wiodącymi)
 void printTimeElement(uint8_t element) {
-  if (element < 10) u8g.print("0");  //dodanie 0
-  u8g.print(element, DEC);
+  if (element < 10) u8g.print("0");  // Dodanie zera wiodącego dla liczb jednocyfrowych
+  u8g.print(element, DEC);  // Wyświetlenie liczby
 }
 
+// Funkcja wyświetlająca czas
 void displaytime() {
-  u8g.setFont(u8g_font_gdr20);
-  u8g.setPrintPos(10, 42);
+  u8g.setFont(u8g_font_gdr20);  // Ustawienie czcionki
+  u8g.setPrintPos(0, 42);       // Ustawienie pozycji kursora
 
   // Korekta strefy czasowej
-  uint8_t hours = GPS.hour + HOUR_OFFSET;  // Dodaj przesunięcie godzin, aby przekształcić UTC na czas lokalny.
+  uint8_t hours = (GPS.hour + HOUR_OFFSET + 24) % 24;
 
-  // Obsługa sytuacji, gdy UTC + przesunięcie wychodzi poza zakres (wartość ujemna lub > 23).
-  if (GPS.hour < 0) {
-    hours = 24 + GPS.hour;
-  }
-  if (GPS.hour > 23) {
-    hours = 24 - GPS.hour;
-  }
-
-  // Konwersja z formatu 24-godzinnego na 12-godzinny, jeśli wymagane.
-  if (!HU_24_H) {
-    // Obsługa godzin powyżej 12 przez odjęcie 12 godzin.
-    if (GPS.hour > 12) {
-      hours -= 12;
-    }
-    // Obsługa godziny 0 (północ), aby wyświetlała 12.
-    else if (GPS.hour == 0) {
-      hours += 12;
-    }
-  }
-  // Wyświetlanie czasu 
-  printTimeElement(hours);
-  u8g.print(":");
-  printTimeElement(GPS.minute);
-  u8g.print(":");
-  printTimeElement(GPS.seconds);
-  u8g.print(" ");
-}
-
-void displaydate() {
-  // Wyświetlanie daty
-  u8g.setFont(u8g_font_helvR08);
-  u8g.setPrintPos(0, 64);
-  u8g.print(GPS.day, DEC);
-  u8g.print('-');
-  u8g.print(GPS.month, DEC);
-  u8g.print("-20");
-  u8g.print(GPS.year, DEC);
-}
-
-void displaylocation() {
-  // Wyświetlanie lokalizacji
-  u8g.setFont(u8g_font_helvR08);
-  u8g.setPrintPos(0, 10);
-
-  if (GPS.satellites == 0) {
-    // Jeśli brak satelitów, wyświetl " NAPIS "
-    u8g.print("Czekam na GPS...");
+  // Wybór formatu czasu (12-godzinny lub 24-godzinny)
+  if (HU_24_H) {
+    u8g.setFont(u8g_font_helvR08);  // Ustawienie czcionki
+    u8g.print("   ");               // Spacja dla formatu 24-godzinnego
+    u8g.setFont(u8g_font_gdr20);    // Powrót do większej czcionki
   } else {
-    // Wyświetlanie rzeczywistych współrzędnych
-    latns = GPS.lat;
-    lonew = GPS.lon;
-    u8g.print(GPS.latitudeDegrees);
-    u8g.print(latns);
-    u8g.print(" - ");
-    u8g.print(GPS.longitudeDegrees);
-    u8g.print(lonew);
+    u8g.setFont(u8g_font_helvR08);  // Ustawienie czcionki
+    u8g.print(hours > 12 ? "PM " : "AM ");  // Wyświetlenie AM/PM
+    u8g.setFont(u8g_font_gdr20);    // Powrót do większej czcionki
+    if (hours > 12) hours -= 12;    // Konwersja na format 12-godzinny
   }
+
+  // Wyświetlenie czasu
+  printTimeElement(hours);  // Godziny
+  u8g.print(":");           // Separator
+  printTimeElement(GPS.minute);  // Minuty
+  u8g.print(":");           // Separator
+  printTimeElement(GPS.seconds);  // Sekundy
+  u8g.print(" ");           // Spacja
 }
 
-void displayQRA() {
-  // Sprawdzenie, czy liczba satelitów jest większa od 0
+// Funkcja wyświetlająca datę
+void displaydate() {
+  u8g.setFont(u8g_font_helvR08);  // Ustawienie czcionki
+  u8g.setPrintPos(0, 64);         // Ustawienie pozycji kursora
+  u8g.print(GPS.day, DEC);        // Wyświetlenie dnia
+  u8g.print('-');                 // Separator
+  u8g.print(GPS.month, DEC);      // Wyświetlenie miesiąca
+  u8g.print("-20");               // Prefix roku (dla lat 2000+)
+  u8g.print(GPS.year, DEC);       // Wyświetlenie roku
+}
+
+// Funkcja wyświetlająca lokalizację (szerokość i długość geograficzną)
+void displaylocation() {
+  u8g.setFont(u8g_font_helvR08);  // Ustawienie czcionki
+  u8g.setPrintPos(0, 10);         // Ustawienie pozycji kursora
+
+  // Sprawdzenie, czy moduł GPS ma połączenie z satelitami
   if (GPS.satellites == 0) {
-    return;  // Nie wyświetlaj lokalizatora QRA, jeśli brak satelitów
+    u8g.print("Czekam na GPS...");  // Komunikat oczekiwania na dane GPS
+  } else {
+    latns = GPS.lat;  // Kierunek szerokości geograficznej (N/S)
+    lonew = GPS.lon;  // Kierunek długości geograficznej (E/W)
+    u8g.print(GPS.latitudeDegrees);  // Wyświetlenie szerokości geograficznej
+    u8g.print(latns);                // Wyświetlenie kierunku (N/S)
+    u8g.print(" - ");                // Separator
+    u8g.print(GPS.longitudeDegrees); // Wyświetlenie długości geograficznej
+    u8g.print(lonew);                // Wyświetlenie kierunku (E/W)
   }
-
-  // Wyświetlanie lokalizatora QRA
-  float loclong = GPS.longitudeDegrees * 1000000;  // Przeliczanie długości geograficznej na całkowite liczby
-  float loclat = GPS.latitudeDegrees * 1000000;    // Przeliczanie szerokości geograficznej na całkowite liczby
-  float scrap;
-  char char_string[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";  // Litery używane w lokalizatorze QRA
-  char num_string[] = "0123456789";                   // Cyfry używane w lokalizatorze QRA
-
-  // Korekta dla długości geograficznej wschodniej
-  if (lonew == 'E') {
-    loclong = (loclong) + 180000000;  // Dodanie korekty dla południka 0
-  }
-  // Korekta dla długości geograficznej zachodniej
-  if (lonew == 'W') {
-    loclong = 180000000 - (abs(loclong));  // Odjęcie wartości absolutnej długości geograficznej od 180000000
-  }
-
-  // Korekta dla szerokości geograficznej północnej
-  if (latns == 'N') {
-    loclat = loclat + 90000000;  // Dodanie korekty dla równika
-  }
-  // Korekta dla szerokości geograficznej południowej
-  if (latns == 'S') {
-    loclat = 90000000 - (abs(loclat));  // Odjęcie wartości absolutnej szerokości geograficznej od 90000000
-  }
-
-  u8g.setFont(u8g_font_helvR08);
-  u8g.setPrintPos(86, 10);
-  // Pierwszy znak - oparty na długości geograficznej (co 20° = 1 kwadrat siatki)
-  u8g.print(char_string[int(loclong / 20000000)]);
-
-  // Drugi znak - oparty na szerokości geograficznej (co 10° = 1 kwadrat siatki)
-  u8g.print(char_string[int(loclat / 10000000)]);
-
-  // Trzeci znak - oparty na długości geograficznej (co 2° = 1 kwadrat siatki)
-  scrap = loclong - (20000000 * int(loclong / 20000000));
-  u8g.print(num_string[int(scrap * 10 / 20 / 1000000)]);
-
-  // Czwarty znak - oparty na szerokości geograficznej (co 1° = 1 kwadrat siatki)
-  scrap = loclat - (10000000 * int(loclat / 10000000));
-  u8g.print(num_string[int(scrap / 1000000)]);
-
-  // Piąty znak - oparty na długości geograficznej (co 5' = 1 kwadrat siatki)
-  scrap = (loclong / 2000000) - (int(loclong / 2000000));
-  u8g.print(char_string[int(scrap * 24)]);
-
-  // Szósty znak - oparty na szerokości geograficznej (co 2.5' = 1 kwadrat siatki)
-  scrap = (loclat / 1000000) - (int(loclat / 1000000));
-  u8g.print(char_string[int(scrap * 24)]);
 }
 
+// Funkcja wyświetlająca lokalizator QRA
+void displayQRA() {
+  if (GPS.satellites == 0) return;  // Pominięcie, jeśli brak danych GPS
+
+  // Przeliczenie współrzędnych na wartości liczbowe
+  float loclong = GPS.longitudeDegrees * 1000000;
+  float loclat = GPS.latitudeDegrees * 1000000;
+
+  // Korekta współrzędnych w zależności od kierunku (E/W, N/S)
+  if (lonew == 'E') loclong += LONGITUDE_OFFSET;
+  if (lonew == 'W') loclong = LONGITUDE_OFFSET - abs(loclong);
+  if (latns == 'N') loclat += LATITUDE_OFFSET;
+  if (latns == 'S') loclat = LATITUDE_OFFSET - abs(loclat);
+
+  u8g.setFont(u8g_font_helvR08);  // Ustawienie czcionki
+  u8g.setPrintPos(86, 10);        // Ustawienie pozycji kursora
+
+  // Obliczenie i wyświetlenie lokalizatora QRA
+  u8g.print(char(int(loclong / GRID_SIZE_LONG) + 'A'));  // Pierwszy znak
+  u8g.print(char(int(loclat / GRID_SIZE_LAT) + 'A'));    // Drugi znak
+  u8g.print(char(int((loclong - (GRID_SIZE_LONG * int(loclong / GRID_SIZE_LONG))) * 10 / 20 / 1000000) + '0'));  // Trzeci znak
+  u8g.print(char(int((loclat - (GRID_SIZE_LAT * int(loclat / GRID_SIZE_LAT))) / 1000000) + '0'));  // Czwarty znak
+  u8g.print(char(int(((loclong / SUBGRID_SIZE_LONG) - int(loclong / SUBGRID_SIZE_LONG)) * 24) + 'A'));  // Piąty znak
+  u8g.print(char(int(((loclat / SUBGRID_SIZE_LAT) - int(loclat / SUBGRID_SIZE_LAT)) * 24) + 'A'));  // Szósty znak
+}
+
+// Funkcja wyświetlająca liczbę satelit
 void displaysats() {
-  // Wyświetlanie liczby satelitów
-  u8g.setFont(u8g_font_helvR08);
-  u8g.setPrintPos(70, 64);
+  u8g.setFont(u8g_font_helvR08);  // Ustawienie czcionki
+  u8g.setPrintPos(70, 64);        // Ustawienie pozycji kursora
   if (GPS.satellites >= 0 && GPS.satellites < 20) {
-    u8g.print("Satelit: ");
-    u8g.print((int)GPS.satellites);
+    u8g.print("Satelit: ");       // Wyświetlenie tekstu
+    u8g.print((int)GPS.satellites);  // Wyświetlenie liczby satelit
   }
 }
