@@ -1,6 +1,6 @@
 # GPS_Field
 GPS in the field GPS dla krótkofalowca w polu pracującego, informuje go o godzinie UTC, którą wpisuje do dziennika, lokator QRA w razie pytania od korespondentów i do wpisania na kartę QSL
-Ograniczenia - niestety wyświetlane jest maksymalnie 12 satelit pomimo podłączenia np. M10 które widzi ponad 30...
+Ograniczenia - niestety wyświetlane jest maksymalnie 12 satelit pomimo podłączenia np. M10 które widzi ponad 30... - ograniczenia biblioteki.
 
 Odczytywane są tylko ramki (dotyczące ilości satelit odebranych):
 - GPGSV: Dotyczy satelitów GPS (USA).
