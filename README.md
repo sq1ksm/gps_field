@@ -3,9 +3,12 @@ Ograniczenia - niestety wyświetlane jest maksymalnie 12 satelit pomimo podłąc
 Odczytywane są tylko ramki:<br>
 GPGSV: Dotyczy satelitów GPS<br>
 Nie odczytuje:<br>
-GLGSV: Dotyczy satelitów GLONASS<br>
-GBGSV: Dotyczy satelitów BeiDou<br>
-GAGSV: Dotyczy satelitów Galileo<br>
+- GLGSV: Dotyczy satelitów GLONASS
+- GBGSV: Dotyczy satelitów BeiDou
+- GAGSV: Dotyczy satelitów Galileo
+<br>
+<br>
+<br>
 
 # GPS_Field
 
