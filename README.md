@@ -1,11 +1,11 @@
 GPS in the field GPS dla krótkofalowca w polu pracującego, informuje go o godzinie UTC, którą wpisuje do dziennika, lokator QRA w razie pytania od korespondentów i do wpisania na kartę QSL
 Ograniczenia - niestety wyświetlane jest maksymalnie 12 satelit pomimo podłączenoa np. M10 które widzi ponad 30...
-Odczytywane są tylko ramki:
-GPGSV: Dotyczy satelitów GPS.
-Nie odczytuje:
-GLGSV: Dotyczy satelitów GLONASS.
-GBGSV: Dotyczy satelitów BeiDou.
-GAGSV: Dotyczy satelitów Galileo.
+Odczytywane są tylko ramki:<br>
+GPGSV: Dotyczy satelitów GPS.<br>
+Nie odczytuje:<br>
+GLGSV: Dotyczy satelitów GLONASS.<br>
+GBGSV: Dotyczy satelitów BeiDou.<br>
+GAGSV: Dotyczy satelitów Galileo.<br>
 
 # GPS_Field
 
